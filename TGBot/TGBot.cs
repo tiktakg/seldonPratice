@@ -15,7 +15,7 @@ class Program
     private const string command2 = "Узнать о компании";
     static void Main(string[] args)
     {
-        var botClient = new TelegramBotClient("6078887309:AAHTzIa85EYBie9vmb9w3fm740T5ecH9Pyk");
+        var botClient = new TelegramBotClient("6013228378:AAE6POWPTmQgevv2bHdy1HjUK1O-8fNSmF8");
 
         botClient.StartReceiving(Update, Error);
 
