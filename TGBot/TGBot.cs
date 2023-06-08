@@ -19,7 +19,7 @@ namespace TGBot
 
         static void Main(string[] args)
         {
-            var botClient = new TelegramBotClient("6078887309:AAHTzIa85EYBie9vmb9w3fm740T5ecH9Pyk");
+            var botClient = new TelegramBotClient("6013228378:AAE6POWPTmQgevv2bHdy1HjUK1O-8fNSmF8");
 
             botClient.StartReceiving(Update, Error);
 
@@ -66,20 +66,21 @@ namespace TGBot
                     break;
 
                 case 2:
-                    ShowText("Введите инн компании", client, message);
+                    ShowText("Введите ИНН компании:", client, message);
                     break;
 
                 default:
                     Regex rx = new Regex(@"\d{13}|\d{15}|\d{10}|\d{12}");
+
                     if (rx.IsMatch(update.Message.Text))
                     {
-                        ShowText("Инн Норм", client, message);
+                        ShowText("Поиск компании по ИНН...", client, message);
                         ShowText(GetApi(update.Message.Text), client, message);
                       
                     }
                     else
                     {
-                        ShowText("Инн указан неверное", client, message);
+                        ShowText("ИНН указан неверно.", client, message);
                     }
                     
 
@@ -104,21 +105,20 @@ namespace TGBot
             CookieContainer cookies = new CookieContainer();
 
 
-        foreach (var cookieHeader in response.Headers.GetValues("Set-Cookie"))
-        {
-
-            try
-            {
-                cookies.SetCookies(uri, cookieHeader);
-            }
-            catch
+            foreach (var cookieHeader in response.Headers.GetValues("Set-Cookie"))
             {
 
+                try
+                {
+                    cookies.SetCookies(uri, cookieHeader);
+                }
+                catch
+                {
+
+                }
+
             }
 
-        }
-
-            Console.WriteLine("asd");
 
             foreach (Cookie cookie in cookies.GetCookies(uri))
             {
@@ -131,27 +131,24 @@ namespace TGBot
             response = client.GetAsync($"https://basis.myseldon.com/api/rest/find_company?Inn={INN}").Result;
             var json = response.Content.ReadAsStringAsync().Result;
 
-            Console.WriteLine(json);
 
             var root = JsonConvert.DeserializeObject<Root>(json);
+
+            if(root.status.itemsFound == 0)
+                return "Компания с таким ИНН не найдена";
+
 
             string msg = "";
 
         
-       msg += $"ОГРН - {root.companies_list[0].basic.ogrn}\n";
-        msg +=   $"ИНН - {root.companies_list[0].basic.ogrn}\n";
-        msg += $" Н аименовение - {root.cmpanies_list[0].basic.ogrn}\n";
-        msg += $"ОГ.companies_list} ic.ogrn}\n";
-        msg += $"ОГРН - {root.companies_list[0].basic.ogrn}\n";
-        msg += $"ОГРН - {root.companies_list[0].basic.ogrn}\n";
             client.GetAsync("https://basis.myseldon.com/api/rest/logout");
 
-            msg += "Коды \n";
+            msg += "Коды \n \n";
             msg += $"   ОГРН - {root.companies_list[0].basic.ogrn} \n";
-            msg += $"   ИНН - {root.companies_list[0].basic.ogrn} \n";
+            msg += $"   ИНН - {root.companies_list[0].basic.ogrn} \n \n";
             msg += "Наименовение  \n";
             msg += $"   Полное - {root.companies_list[0].basic.fullName} \n";
-            msg += $"   Сокращенное - {root.companies_list[0].basic.shortName}\n";
+            msg += $"   Сокращенное - {root.companies_list[0].basic.shortName}\n \n";
             msg += $"Тел - {root.companies_list[0].phoneFormattedList[0].number}\n";
             msg += $"Адрес - {root.companies_list[0].address}\n";
             
@@ -163,7 +160,7 @@ namespace TGBot
         {
             if (update.Message is not { } message)
                 return;
-            if (update.Message == null)
+            if (update.Message.Text == null)
                 return;
 
             Task.Run(() => HandleCommands(client, update, token));
