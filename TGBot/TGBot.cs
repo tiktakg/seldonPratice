@@ -19,7 +19,7 @@ namespace TGBot
 
         static void Main(string[] args)
         {
-            var botClient = new TelegramBotClient("6013228378:AAE6POWPTmQgevv2bHdy1HjUK1O-8fNSmF8");
+            var botClient = new TelegramBotClient("6078887309:AAHTzIa85EYBie9vmb9w3fm740T5ecH9Pyk");
 
             botClient.StartReceiving(Update, Error);
 
@@ -94,11 +94,10 @@ namespace TGBot
 
             content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-www-form-urlencoded");
 
+            var response = client.PostAsync(uri, content).Result;
+
             CookieContainer cookies = new CookieContainer();
 
-
-
-            Console.WriteLine("asd");
 
             foreach (Cookie cookie in cookies.GetCookies(uri))
             {
@@ -108,13 +107,13 @@ namespace TGBot
                     client.DefaultRequestHeaders.Add("LoginMyseldon", cookie.Value);
             }
 
-            var response = client.GetAsync($"https://basis.myseldon.com/api/rest/find_company?Inn={INN}").Result;
+             response = client.GetAsync($"https://basis.myseldon.com/api/rest/find_company?Inn={INN}").Result;
             var json = response.Content.ReadAsStringAsync().Result;
 
 
             var root = JsonConvert.DeserializeObject<Root>(json);
 
-            if(root.status.itemsFound == 0)
+            if (root.status.itemsFound == 0)
                 return "Компания с таким ИНН не найдена";
 
 
@@ -144,6 +143,7 @@ namespace TGBot
             if (update.Message.Text == null)
                 return;
 
+            Console.WriteLine(update.Message.Text);
             Task.Run(() => HandleCommands(client, update, token));
         }
 
