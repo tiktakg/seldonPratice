@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using Telegram.Bot;
@@ -86,19 +87,53 @@ class Program
     private static  string GetApi(string INN)
     {
         var client = new HttpClient();
-        var lgn = new Login() { UserName = "test00590736@test.ru", Password = "YeVgM61u" };
-        string cnt = JsonConvert.SerializeObject(lgn);
-        HttpContent content = new StringContent(cnt);
 
-        var cookie = client.PostAsync("https://basis.myseldon.com/api/rest/login", content).Result.Content.ReadAsStringAsync();
-        Cookie cke = JsonConvert.DeserializeObject<Cookie>(cookie.ToString());
-        Console.WriteLine(cke.LoginMyseldon + " " + cke.SessionGuid);
+        Uri uri = new("https://basis.myseldon.com/api/rest/login");
+
+        HttpContent content = new StringContent("UserName=test00590736@test.ru&Password=YeVgM61u");
+
+        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-www-form-urlencoded");
+
+        var response = client.PostAsync(uri, content).Result;
+
+        CookieContainer cookies = new CookieContainer();
 
 
-        //var res =  client.GetAsync("https://basis.myseldon.com/api/rest/check_balance").Result.Content.ReadAsStringAsync();
+        foreach (var cookieHeader in response.Headers.GetValues("Set-Cookie"))
+        {
+
+            try
+            {
+                cookies.SetCookies(uri, cookieHeader);
+            }
+            catch
+            {
+
+            }
+
+        }
+
+
+        foreach (Cookie cookie in cookies.GetCookies(uri))
+        {
+            if (cookie.Name == "SessionGuid")
+                client.DefaultRequestHeaders.Add("SessionGuid", cookie.Value);
+            if (cookie.Name == "LoginMyseldon")
+                client.DefaultRequestHeaders.Add("LoginMyseldon", cookie.Value);
+        }
+
+        response = client.GetAsync("https://basis.myseldon.com/api/rest/find_company?Inn=7736050003").Result;
+        var json = response.Content.ReadAsStringAsync().Result;
+
+        Console.WriteLine(json);
+
+        var root = JsonSerializer.Deserialize<Root>(json);
+
+        string msg = "";
 
         client.GetAsync("https://basis.myseldon.com/api/rest/logout");
-        return ""; 
+
+        return msg;
     }
 
     async static Task Update(ITelegramBotClient client, Update update, CancellationToken token)
@@ -132,8 +167,3 @@ class Login
     public string Password;
 }
 
-class Cookie
-{
-    public string LoginMyseldon;
-    public string SessionGuid;
-}
