@@ -48,10 +48,10 @@ namespace TGBot
                     break;
                 }
             }
-            if (cmnd == null && (message.Text.Length < 5))
-            {
-                return;
-            }
+            //if (cmnd == null && (message.Text.Length < 5))
+            //{
+            //    return;
+            //}
 
 
             switch (cmnd)
@@ -71,23 +71,19 @@ namespace TGBot
 
                 default:
                     Regex rx = new Regex(@"\d{13}|\d{15}|\d{10}|\d{12}");
-
                     if (rx.IsMatch(update.Message.Text))
                     {
                         ShowText("Инн Норм", client, message);
                         ShowText(GetApi(update.Message.Text), client, message);
                       
                     }
-                    string msg = "Инн указан неверное"; //GetApi(message.Text);
-
-                    if (msg == null)
-                    {
-                        await client.SendTextMessageAsync(message.Chat.Id, text: "Выберете что делать дальше? ", replyMarkup: replyKeyboardMarkup);
-                    }
                     else
                     {
-                        ShowText(msg, client, message);
+                        ShowText("Инн указан неверное", client, message);
                     }
+                    
+
+                   
                     break;
             }
         }
@@ -108,21 +104,8 @@ namespace TGBot
             CookieContainer cookies = new CookieContainer();
 
 
-            foreach (var cookieHeader in response.Headers.GetValues("Set-Cookie"))
-            {
 
-               // cookies.SetCookies(uri, cookieHeader);
-                try
-                {
-                    cookies.SetCookies(uri, cookieHeader);
-                }
-                catch
-                {
-                    
-                }
-
-            }
-
+            Console.WriteLine("asd");
 
             foreach (Cookie cookie in cookies.GetCookies(uri))
             {
@@ -132,7 +115,7 @@ namespace TGBot
                     client.DefaultRequestHeaders.Add("LoginMyseldon", cookie.Value);
             }
 
-            response = client.GetAsync("https://basis.myseldon.com/api/rest/find_company?Inn=7736050003").Result;
+            response = client.GetAsync($"https://basis.myseldon.com/api/rest/find_company?Inn={INN}").Result;
             var json = response.Content.ReadAsStringAsync().Result;
 
             Console.WriteLine(json);
@@ -152,7 +135,7 @@ namespace TGBot
             msg += $"Тел - {root.companies_list[0].phoneFormattedList[0].number}\n";
             msg += $"Адрес - {root.companies_list[0].address}\n";
             
-
+            Console.WriteLine(msg);
             return msg;
         }
 
