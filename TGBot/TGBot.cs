@@ -130,7 +130,6 @@ namespace TGBot
             msg += $"   Сокращенное - {root.companies_list[0].basic.shortName}\n";
             msg += $"Тел - {root.companies_list[0].phoneFormattedList[0].number}\n";
             msg += $"Адрес - {root.companies_list[0].address}\n";
-            msg += $"Статус - {root.companies_list[0].basic.status}\n";
 
             Console.WriteLine(msg);
             return msg;
