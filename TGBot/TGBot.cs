@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Telegram.Bot;
 using Telegram.Bot.Args;
@@ -34,7 +35,7 @@ class Program
             ResizeKeyboard = true
         };
 
-
+        var message = update.Message;
         int? cmnd = null;
         foreach (string i in cmnds)
         {
@@ -45,12 +46,12 @@ class Program
                 break;
             }
         }
-        if (cmnd == null)
+        if (cmnd == null && (message.Text.Length < 5))
         {
             return;
         }
 
-        var message = update.Message;
+        
         switch (cmnd)
         {
             case 0:
@@ -82,10 +83,22 @@ class Program
     }
 
 
-    private static string GetApi(string INN)
+    private static  string GetApi(string INN)
     {
-        // Типа Код
-        return null; 
+        var client = new HttpClient();
+        var lgn = new Login() { UserName = "test00590736@test.ru", Password = "YeVgM61u" };
+        string cnt = JsonConvert.SerializeObject(lgn);
+        HttpContent content = new StringContent(cnt);
+
+        var cookie = client.PostAsync("https://basis.myseldon.com/api/rest/login", content).Result.Content.ReadAsStringAsync();
+        Cookie cke = JsonConvert.DeserializeObject<Cookie>(cookie.ToString());
+        Console.WriteLine(cke.LoginMyseldon + " " + cke.SessionGuid);
+
+
+        //var res =  client.GetAsync("https://basis.myseldon.com/api/rest/check_balance").Result.Content.ReadAsStringAsync();
+
+        client.GetAsync("https://basis.myseldon.com/api/rest/logout");
+        return ""; 
     }
 
     async static Task Update(ITelegramBotClient client, Update update, CancellationToken token)
@@ -107,8 +120,20 @@ class Program
 
     private static Task Error(ITelegramBotClient client, Exception exception, CancellationToken token)
     {
-        throw new NotImplementedException();
+        Console.WriteLine(exception.Message);
+        return Task.CompletedTask;
     }
 
 
+}
+class Login
+{
+    public string UserName;
+    public string Password;
+}
+
+class Cookie
+{
+    public string LoginMyseldon;
+    public string SessionGuid;
 }
