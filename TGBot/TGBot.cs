@@ -1,4 +1,5 @@
-﻿using System.Threading;
+﻿using System.Text.RegularExpressions;
+using System.Threading;
 using Telegram.Bot;
 using Telegram.Bot.Args;
 using Telegram.Bot.Polling;
@@ -10,22 +11,21 @@ using Telegram.Bot.Types.ReplyMarkups;
 
 class Program
 {
-    private const string command0 = "/start";
-    private const string command1 = "Что я делаю?";
-    private const string command2 = "Узнать о компании";
+#pragma warning disable 1998
+#pragma warning disable 4014
+
     static void Main(string[] args)
     {
-        var botClient = new TelegramBotClient("6078887309:AAHTzIa85EYBie9vmb9w3fm740T5ecH9Pyk");
+        var botClient = new TelegramBotClient("6013228378:AAE6POWPTmQgevv2bHdy1HjUK1O-8fNSmF8");
 
         botClient.StartReceiving(Update, Error);
 
         Console.ReadLine();
     }
 
-
-    async static Task Update(ITelegramBotClient client, Update update, CancellationToken token)
+    static private async void HandleCommands(ITelegramBotClient client, Update update, CancellationToken token)
     {
-
+        string[] cmnds = new string[3] { "/start", "Что я делаю?", "Узнать о компании" };
         ReplyKeyboardMarkup replyKeyboardMarkup = new(new[]
         {
             new KeyboardButton[]
@@ -34,32 +34,72 @@ class Program
             ResizeKeyboard = true
         };
 
-        var message = update.Message;
-        if (message != null )
-        {
 
-            switch(message.Text)
+        int? cmnd = null;
+        foreach (string i in cmnds)
+        {
+            Regex rx = new Regex($"^{i}");
+            if (rx.IsMatch(update.Message.Text))
             {
-                case command0:
-                    showText("Привет я бот для получения информации о компании по ИНН.",client,message);
-                    await client.SendTextMessageAsync(message.Chat.Id, text: "Выберете что делать дальше? ", replyMarkup: replyKeyboardMarkup);
-                    break;
-                case command1:
-                    showText("Привет я бот для получения информации о компании по ИНН.", client, message);
-                    break;
-                case command2:
-                    showText("Введите инн компании", client, message);
-                    break;
-                default:
-                    await client.SendTextMessageAsync(message.Chat.Id, text: "Выберете что делать дальше? ", replyMarkup: replyKeyboardMarkup);
-                    break;
+                cmnd = Array.IndexOf(cmnds, i);
+                break;
             }
-           
         }
-        return;
+        if (cmnd == null)
+        {
+            return;
+        }
+
+        var message = update.Message;
+        switch (cmnd)
+        {
+            case 0:
+                ShowText("Привет я бот для получения информации о компании по ИНН.", client, message);
+                await client.SendTextMessageAsync(message.Chat.Id, text: "Выберете что делать дальше? ", replyMarkup: replyKeyboardMarkup);
+                break;
+
+            case 1:
+                ShowText("Привет я бот для получения информации о компании по ИНН.", client, message);
+                break;
+
+            case 2:
+                ShowText("Введите инн компании", client, message);
+                break;
+
+            default:
+                string msg = GetApi(message.Text);
+                if (msg == null)
+                {
+                    await client.SendTextMessageAsync(message.Chat.Id, text: "Выберете что делать дальше? ", replyMarkup: replyKeyboardMarkup);
+                }
+                else
+                {
+                    ShowText(msg, client, message);
+                }
+                
+                break;
+        }
     }
 
-    async static void showText(string text, ITelegramBotClient client, Message message ) 
+
+    private static string GetApi(string INN)
+    {
+        // Типа Код
+        return null; 
+    }
+
+    async static Task Update(ITelegramBotClient client, Update update, CancellationToken token)
+    {
+        if (update.Message is not { } message)
+            return;
+        if (update.Message == null)
+            return;
+
+        Task.Run(() => HandleCommands(client, update, token));
+    }
+
+
+    async static void ShowText(string text, ITelegramBotClient client, Message message ) 
     {
         await client.SendTextMessageAsync(message.Chat.Id, text);
     }
