@@ -48,11 +48,6 @@ namespace TGBot
                     break;
                 }
             }
-            //if (cmnd == null && (message.Text.Length < 5))
-            //{
-            //    return;
-            //}
-
 
             switch (cmnd)
             {
@@ -76,7 +71,6 @@ namespace TGBot
                     {
                         ShowText("Поиск компании по ИНН...", client, message);
                         ShowText(GetApi(update.Message.Text), client, message);
-                      
                     }
                     else
                     {
@@ -100,25 +94,11 @@ namespace TGBot
 
             content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-www-form-urlencoded");
 
-            var response = client.PostAsync(uri, content).Result;
-
             CookieContainer cookies = new CookieContainer();
 
 
-            foreach (var cookieHeader in response.Headers.GetValues("Set-Cookie"))
-            {
 
-                try
-                {
-                    cookies.SetCookies(uri, cookieHeader);
-                }
-                catch
-                {
-
-                }
-
-            }
-
+            Console.WriteLine("asd");
 
             foreach (Cookie cookie in cookies.GetCookies(uri))
             {
@@ -128,7 +108,7 @@ namespace TGBot
                     client.DefaultRequestHeaders.Add("LoginMyseldon", cookie.Value);
             }
 
-            response = client.GetAsync($"https://basis.myseldon.com/api/rest/find_company?Inn={INN}").Result;
+            var response = client.GetAsync($"https://basis.myseldon.com/api/rest/find_company?Inn={INN}").Result;
             var json = response.Content.ReadAsStringAsync().Result;
 
 
@@ -145,13 +125,14 @@ namespace TGBot
 
             msg += "Коды \n \n";
             msg += $"   ОГРН - {root.companies_list[0].basic.ogrn} \n";
-            msg += $"   ИНН - {root.companies_list[0].basic.ogrn} \n \n";
+            msg += $"   ИНН - {root.companies_list[0].basic.ogrn} \n";
             msg += "Наименовение  \n";
             msg += $"   Полное - {root.companies_list[0].basic.fullName} \n";
-            msg += $"   Сокращенное - {root.companies_list[0].basic.shortName}\n \n";
+            msg += $"   Сокращенное - {root.companies_list[0].basic.shortName}\n";
             msg += $"Тел - {root.companies_list[0].phoneFormattedList[0].number}\n";
             msg += $"Адрес - {root.companies_list[0].address}\n";
-            
+            msg += $"Статус - {root.companies_list[0].basic.status}\n";
+
             Console.WriteLine(msg);
             return msg;
         }
@@ -166,26 +147,16 @@ namespace TGBot
             Task.Run(() => HandleCommands(client, update, token));
         }
 
-
         async static void ShowText(string text, ITelegramBotClient client, Message message)
         {
             await client.SendTextMessageAsync(message.Chat.Id, text);
         }
-
 
         private static Task Error(ITelegramBotClient client, Exception exception, CancellationToken token)
         {
             Console.WriteLine(exception.Message);
             return Task.CompletedTask;
         }
-
-
-    }
-    class Login
-    {
-        public string UserName;
-        public string Password;
     }
 
 }
-
