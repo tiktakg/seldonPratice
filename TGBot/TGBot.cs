@@ -19,7 +19,7 @@ namespace TGBot
 
         static void Main(string[] args)
         {
-            var botClient = new TelegramBotClient("6078887309:AAHTzIa85EYBie9vmb9w3fm740T5ecH9Pyk");
+            var botClient = new TelegramBotClient("API KEY");
 
             botClient.StartReceiving(Update, Error);
 
@@ -28,7 +28,7 @@ namespace TGBot
 
         static private async void HandleCommands(ITelegramBotClient client, Update update, CancellationToken token)
         {
-            string[] cmnds = new string[3] { "/start", "Что я делаю?", "Узнать о компании" }; // Список команд
+            string[] cmnds = new string[4] { "/start", "Что я делаю?", "Узнать о компании", "/pdf" }; // Список команд
             
             ReplyKeyboardMarkup replyKeyboardMarkup = new(new[] // Устанавливаем клавиатуру
             {
@@ -39,17 +39,21 @@ namespace TGBot
             };
 
             var message = update.Message;
+            string msg = update.Message.Text;
+
             int? cmnd = null;
             foreach (string i in cmnds)
             {
-                Regex rx = new Regex($"^{i}"); // Проверяем сообщение на наличие команд
-                if (rx.IsMatch(update.Message.Text))
+                Regex rx1 = new Regex($"^{i}{@"\s"}+"); // Проверяем сообщение на наличие команд
+                if (rx1.IsMatch(msg))
                 {
                     cmnd = Array.IndexOf(cmnds, i);
+                    msg = rx1.Replace(msg, "");
                     break;
                 }
             }
 
+            Regex rx = new Regex(@"\d{13}|\d{15}|\d{10}|\d{12}");
             switch (cmnd) // Обрабатываем команды
             {
                 case 0: // /start
@@ -64,14 +68,26 @@ namespace TGBot
                 case 2: // Узнать о компании
                     ShowText("Введите ИНН компании:", client, message);
                     break;
+                case 3:
+                    if (rx.IsMatch(msg)) // Проверяем ИНН на соответствие
+                    {
+                        ShowText("Поиск компании по ИНН...", client, message);
+                        ShowText(GetApiPdf(msg), client, message);
+                        ShowFile("company.pdf", client, message);
+                    }
+                    else
+                    {
+                        ShowText("ИНН указан неверно.", client, message);
+                    }
+                    break;
 
                 default: // Обработка ИНН
 
-                    Regex rx = new Regex(@"\d{13}|\d{15}|\d{10}|\d{12}"); 
-                    if (rx.IsMatch(update.Message.Text)) // Проверяем ИНН на соответствие
+                    if (rx.IsMatch(msg)) // Проверяем ИНН на соответствие
                     {
                         ShowText("Поиск компании по ИНН...", client, message);
-                        ShowText(GetApi(update.Message.Text), client, message);
+                        ShowText(GetApi(msg), client, message);
+
                     }
                     else
                     {
@@ -137,6 +153,54 @@ namespace TGBot
             return msg;
         }
 
+        private static string GetApiPdf(string inn)
+        {
+            var client = new HttpClient();
+
+            Uri uri = new("https://basis.myseldon.com/api/rest/login");
+
+            HttpContent content = new StringContent("UserName=test00590736@test.ru&Password=YeVgM61u");
+            // Добавляем логин и пароль в body запроса
+
+            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-www-form-urlencoded");
+            // Устанавливаем кодировку
+
+            var response = client.PostAsync(uri, content).Result;
+            // Логинимся в API
+
+
+            CookieContainer cookies = new CookieContainer();
+
+
+            foreach (Cookie cookie in cookies.GetCookies(uri)) // Получаем куки из запроса
+            {
+                if (cookie.Name == "SessionGuid") // Устанавливаем полученные данные в заголовок зароса
+                    client.DefaultRequestHeaders.Add("SessionGuid", cookie.Value);
+                if (cookie.Name == "LoginMyseldon")
+                    client.DefaultRequestHeaders.Add("LoginMyseldon", cookie.Value);
+            }
+
+            string res = client.GetAsync($"https://basis.myseldon.com/api/rest/order_excerpt_pdf?ogrn={inn}").Result.Content.ReadAsStringAsync().Result;
+            Root root = JsonConvert.DeserializeObject<Root>(res);
+
+            if(root.status.methodStatus == "Error")
+            {
+                return "Компания не найдена." + root.status.name;
+            }
+
+            res = client.GetAsync($"https://basis.myseldon.com/api/rest/get_excerpt_pdf?orderNum={49326}").Result.Content.ReadAsStringAsync().Result;
+            
+            root = JsonConvert.DeserializeObject<Root>(res);
+
+            byte[] fl = Convert.FromBase64String(root.excerpt_body);
+
+            System.IO.File.WriteAllBytes("company.pdf", fl);
+
+
+            return "Готово!";
+
+        }
+
         async static Task Update(ITelegramBotClient client, Update update, CancellationToken token)
         {
             if (update.Message is not { } message) // Проверка на сообщения на наличие текста
@@ -151,6 +215,11 @@ namespace TGBot
         async static void ShowText(string text, ITelegramBotClient client, Message message)
         {
             await client.SendTextMessageAsync(message.Chat.Id, text);
+        }
+        async static void ShowFile(string fileName, ITelegramBotClient client, Message message)
+        {
+            await using Stream file = System.IO.File.OpenRead(fileName);
+            await client.SendDocumentAsync(message.Chat.Id, InputFile.FromStream(file, fileName));
         }
 
         private static Task Error(ITelegramBotClient client, Exception exception, CancellationToken token)

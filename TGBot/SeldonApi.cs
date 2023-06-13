@@ -86,6 +86,8 @@ namespace TGBot
         public Status status { get; set; }
         public List<CompaniesList> companies_list { get; set; }
         public SearchSummary search_summary { get; set; }
+        public string excerpt_body { get; set; }
+        public int orderNum { get; set; }
     }
 
     public class SearchSummary
