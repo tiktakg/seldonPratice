@@ -8,7 +8,7 @@ using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
-
+using File = System.IO.File;
 
 namespace TGBot
 {
@@ -19,7 +19,7 @@ namespace TGBot
 
         static void Main(string[] args)
         {
-            var botClient = new TelegramBotClient("API KEY");
+            var botClient = new TelegramBotClient("6213391252:AAGlbIcZamAA3Cm5rot1yfwa1gVGhTDPC_U");
 
             botClient.StartReceiving(Update, Error);
 
@@ -187,12 +187,31 @@ namespace TGBot
             {
                 return "Компания не найдена." + root.status.name;
             }
+            Console.WriteLine(root.orderNum);
 
-            res = client.GetAsync($"https://basis.myseldon.com/api/rest/get_excerpt_pdf?orderNum={49326}").Result.Content.ReadAsStringAsync().Result;
-            
-            root = JsonConvert.DeserializeObject<Root>(res);
+            int order = root.orderNum;
+            while(true)
+            {
+
+                Thread.Sleep(10000);
+                res = client.GetAsync($"https://basis.myseldon.com/api/rest/get_excerpt_pdf?orderNum={order}").Result.Content.ReadAsStringAsync().Result;
+
+                root = JsonConvert.DeserializeObject<Root>(res);
+
+                if (root.excerpt_body != null)
+                {
+                    break;
+                }
+                Console.WriteLine("Retry");
+            }
 
             byte[] fl = Convert.FromBase64String(root.excerpt_body);
+
+
+            if (File.Exists("company.pdf"))
+            {
+                File.Delete("company.pdf");
+            }
 
             System.IO.File.WriteAllBytes("company.pdf", fl);
 
@@ -220,6 +239,7 @@ namespace TGBot
         {
             await using Stream file = System.IO.File.OpenRead(fileName);
             await client.SendDocumentAsync(message.Chat.Id, InputFile.FromStream(file, fileName));
+            file.Close();
         }
 
         private static Task Error(ITelegramBotClient client, Exception exception, CancellationToken token)
