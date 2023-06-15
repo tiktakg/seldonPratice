@@ -102,7 +102,7 @@ namespace TGBot
 
             while (true)
             {
-                Thread.Sleep(5000);
+                Thread.Sleep(1000);
                 res = client.GetAsync($"https://basis.myseldon.com/api/rest/get_excerpt_pdf?orderNum={root.orderNum}").Result.Content.ReadAsStringAsync().Result;
 
                 root = JsonConvert.DeserializeObject<Root>(res);
