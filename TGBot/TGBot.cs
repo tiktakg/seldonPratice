@@ -53,8 +53,8 @@ namespace TGBot
                     if (new Regex(@"\d{13}|\d{15}|\d{10}|\d{12}").IsMatch(msg)) // Проверяем ИНН на соответствие
                     {
                         ShowText("Поиск компании по ИНН...", client, message);
-                        ShowText(GetApiPdf(msg, client, message), client, message);
-                        
+                        ShowText(checkINN(msg, client, message), client, message);
+
                     }
                     else
                         ShowText("ИНН указан неверно.", client, message);
@@ -64,18 +64,17 @@ namespace TGBot
             }
         }
 
-        private static string GetApiPdf(string INN, ITelegramBotClient TGclient, Message message)
+        private static string checkINN(string INN, ITelegramBotClient TGclient, Message message)
         {
             var client = new HttpClient();
 
             Uri uri = new("https://basis.myseldon.com/api/rest/login");
-            CookieContainer cookies = new CookieContainer();
             HttpContent content = new StringContent("UserName=test00590736@test.ru&Password=YeVgM61u"); // Добавляем логин и пароль в body запроса
             content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-www-form-urlencoded"); // Устанавливаем кодировку
 
             Root root;
-
             var response = client.PostAsync(uri, content).Result; // Логинимся в API
+            CookieContainer cookies = new CookieContainer();
             string res;
 
             foreach (Cookie cookie in cookies.GetCookies(uri)) // Получаем куки из запроса
@@ -86,29 +85,33 @@ namespace TGBot
                     client.DefaultRequestHeaders.Add("LoginMyseldon", cookie.Value);
             }
 
-            response = client.GetAsync($"https://basis.myseldon.com/api/rest/find_company?Inn={INN}").Result; // Делаем запрос к API
-
-            root = JsonConvert.DeserializeObject<Root>(response.Content.ReadAsStringAsync().Result); // Производим десериализацию полученного json
-
-            if (root.status.itemsFound == 0) // Если ничего не найдено, возвращаем сообщение об ошибке
-                return "Компания с таким ИНН не найдена";
-
-
-            res = client.GetAsync($"https://basis.myseldon.com/api/rest/order_excerpt_pdf?ogrn={root.companies_list[0].basic.ogrn}").Result.Content.ReadAsStringAsync().Result;
+            res = client.GetAsync($"https://basis.myseldon.com/api/rest/order_excerpt_pdf?inn={INN}").Result.Content.ReadAsStringAsync().Result;
             root = JsonConvert.DeserializeObject<Root>(res);
 
             if (root.status.methodStatus == "Error")
-                return "Компания с таким ИННне найдена." + root.status.name;
+                return "Компания с таким ИНН не найдена." + root.status.name;
+            else
+            {
+                ShowText("Компания найдена, справка генерируется...", TGclient, message);
+                return GetApiPdf(INN, root, TGclient, message,client);
+            }
+        }
 
+        private static string GetApiPdf(string INN,Root root, ITelegramBotClient TGclient, Message message, HttpClient client)
+        {
+            int order = root.orderNum;
             while (true)
             {
                 Thread.Sleep(1000);
-                res = client.GetAsync($"https://basis.myseldon.com/api/rest/get_excerpt_pdf?orderNum={root.orderNum}").Result.Content.ReadAsStringAsync().Result;
+                string res = client.GetAsync($"https://basis.myseldon.com/api/rest/get_excerpt_pdf?orderNum={order}").Result.Content.ReadAsStringAsync().Result;
 
                 root = JsonConvert.DeserializeObject<Root>(res);
 
                 if (root.excerpt_body != null)
                     break;
+
+                Console.WriteLine("retry");
+
             }
 
             if (System.IO.File.Exists("company.pdf"))
@@ -131,7 +134,6 @@ namespace TGBot
             Console.WriteLine(update.Message.Text);
             Task.Run(() => HandleCommands(client, update, token));
         }
-
         async static void ShowText(string text, ITelegramBotClient client, Message message)
         {
             await client.SendTextMessageAsync(message.Chat.Id, text);
